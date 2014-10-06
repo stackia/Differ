@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="DiffWindow">
+  <grid id="27dc6" binding="diffPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+    <constraints>
+      <xy x="20" y="20" width="1178" height="1342"/>
+    </constraints>
+    <properties/>
+    <border type="empty">
+      <size top="10" left="10" bottom="10" right="10"/>
+    </border>
+    <children>
+      <grid id="5a56e" layout-manager="GridLayoutManager" row-count="3" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints border-constraint="Center"/>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <component id="3e8cb" class="javax.swing.JButton" binding="loadSourceButton">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="Load source from a file ..."/>
+            </properties>
+          </component>
+          <component id="5683a" class="javax.swing.JButton" binding="loadTargetButton">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <text value="Load target from a file ..."/>
+            </properties>
+          </component>
+          <scrollpane id="3ae74">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                <preferred-size width="450" height="600"/>
+              </grid>
+            </constraints>
+            <properties/>
+            <border type="none">
+              <size top="0" left="10" bottom="0" right="10"/>
+            </border>
+            <children>
+              <component id="d6396" class="javax.swing.JTextPane" binding="sourceTextPane">
+                <constraints/>
+                <properties>
+                  <editable value="true"/>
+                  <text value="#include &quot;MessageQueue.hpp&quot;&#10;&#10;MessageQueue::MessageQueue(std::string hostname, int port, std::string queue) {&#10;  conn = amqp_new_connection();&#10;  socket = amqp_tcp_socket_new(conn);&#10;  this-&gt;hostname = hostname;&#10;  this-&gt;port = port;&#10;  exchange = &quot;amq.direct&quot;;&#10;  route = this-&gt;queue = queue;&#10;}&#10;&#10;MessageQueue::~MessageQueue() {}&#10;&#10;void MessageQueue::throwOnError(amqp_rpc_reply_t reply, std::string context) {&#10;  std::string err;&#10;  char errbuf[200];&#10;  amqp_connection_close_t *m = (amqp_connection_close_t *) reply.reply.decoded;&#10;  &#10;  switch (reply.reply_type) {&#10;    case AMQP_RESPONSE_NORMAL:&#10;      return;&#10;      &#10;    case AMQP_RESPONSE_NONE:&#10;      err = &quot;missing RPC reply type!&quot;;&#10;      break;&#10;&#10;    case AMQP_RESPONSE_LIBRARY_EXCEPTION:&#10;      err = amqp_error_string2(reply.library_error);&#10;      break;&#10;&#10;    case AMQP_RESPONSE_SERVER_EXCEPTION:&#10;      switch (reply.reply.id) {&#10;        case AMQP_CONNECTION_CLOSE_METHOD:&#10;          std::snprintf(errbuf, sizeof(errbuf), &quot;server connection error %d, message: %.*s&quot;, m-&gt;reply_code, (int)m-&gt;reply_text.len, (char*)m-&gt;reply_text.bytes);&#10;          err = errbuf;&#10;          break;&#10;    &#10;        case AMQP_CHANNEL_CLOSE_METHOD:&#10;          std::snprintf(errbuf, sizeof(errbuf), &quot;server channel error %d, message: %.*s&quot;, m-&gt;reply_code, (int)m-&gt;reply_text.len, (char*)m-&gt;reply_text.bytes);&#10;          err = errbuf;&#10;          break;&#10;          &#10;        default:&#10;          std::snprintf(errbuf, sizeof(errbuf), &quot;unknown server error, method id 0x%08X\n&quot;, reply.reply.id);&#10;          err = errbuf;&#10;          break;&#10;      }&#10;  }&#10;  throw context + &quot;: &quot; + err;&#10;}&#10;&#10;void MessageQueue::throwOnError(int status, std::string context, std::string errInfo) {&#10;  if (status) {&#10;    std::string err = &quot;an error happened.&quot;;&#10;    if (!errInfo.empty()) {&#10;      err = errInfo;&#10;    }&#10;    throw context + &quot;: &quot; + err;&#10;  }&#10;}&#10;&#10;void MessageQueue::openSocket() {&#10;  int status = amqp_socket_open(socket, hostname.c_str(), port);&#10;  throwOnError(status, &quot;MessageQueue::openSocket&quot;, &quot;Failed to connect to the message server.&quot;);&#10;}&#10;&#10;void MessageQueue::login() {&#10;  amqp_rpc_reply_t reply;&#10;  reply = amqp_login(conn, &quot;/&quot;, AMQP_DEFAULT_MAX_CHANNELS, AMQP_DEFAULT_FRAME_SIZE, AMQP_DEFAULT_HEARTBEAT, AMQP_SASL_METHOD_PLAIN, &quot;guest&quot;, &quot;guest&quot;);&#10;  throwOnError(reply, &quot;MessageQueue::login&quot;);&#10;}&#10;&#10;void MessageQueue::openChannel(amqp_channel_t channel) {&#10;  this-&gt;channel = channel;&#10;  amqp_channel_open(conn, channel);&#10;  throwOnError(amqp_get_rpc_reply(conn), &quot;MessageQueue::openChannel&quot;);&#10;}&#10;&#10;void MessageQueue::declareAndBindQueue() {&#10;  // Declare&#10;  amqp_queue_declare(conn, channel, amqp_cstring_bytes(queue.c_str()), false, true, false, false, amqp_empty_table);&#10;  throwOnError(amqp_get_rpc_reply(conn), &quot;MessageQueue::declareAndBindQueue::Declare&quot;);&#10;&#10;  // Bind&#10;  amqp_queue_bind(conn, channel, amqp_cstring_bytes(route.c_str()), amqp_cstring_bytes(exchange.c_str()), amqp_cstring_bytes(route.c_str()), amqp_empty_table);&#10;  throwOnError(amqp_get_rpc_reply(conn), &quot;MessageQueue::declareAndBindQueue::Bind&quot;);&#10;}&#10;&#10;void MessageQueue::startConsume() {&#10;  amqp_basic_consume(conn, channel, amqp_cstring_bytes(queue.c_str()), amqp_empty_bytes, false, false, false, amqp_empty_table);&#10;  throwOnError(amqp_get_rpc_reply(conn), &quot;MessageQueue::startConsume&quot;);&#10;}&#10;&#10;Message MessageQueue::consume() {&#10;  amqp_rpc_reply_t reply;&#10;  amqp_envelope_t envelope;&#10;  Message msg;&#10;  reply = amqp_consume_message(conn, &amp;envelope, NULL, 0);&#10;  throwOnError(reply, &quot;MessageQueue::consume&quot;);&#10;  msg.deliveryTag = envelope.delivery_tag;&#10;  msg.exchange = std::string((char*)envelope.exchange.bytes, envelope.exchange.len);&#10;  msg.routingKey = std::string((char*)envelope.routing_key.bytes, envelope.routing_key.len);&#10;  msg.body = std::string((char*)envelope.message.body.bytes, envelope.message.body.len);&#10;  amqp_basic_ack(conn, channel, envelope.delivery_tag, 0);&#10;  amqp_maybe_release_buffers_on_channel(conn, channel);&#10;  return msg;&#10;}&#10;&#10;void MessageQueue::close() {&#10;  amqp_rpc_reply_t reply;&#10;  reply = amqp_channel_close(conn, channel, AMQP_REPLY_SUCCESS);&#10;  throwOnError(reply, &quot;MessageQueue::close::channel&quot;);&#10;  reply = amqp_connection_close(conn, AMQP_REPLY_SUCCESS);&#10;  throwOnError(reply, &quot;MessageQueue::close::connection&quot;);&#10;  int status = amqp_destroy_connection(conn);&#10;  throwOnError(status, &quot;MessageQueue::close::destroyConnection&quot;, &quot;Failed to destroy connection.&quot;);&#10;}&#10;&#10;void MessageQueue::prepareForConsume() {&#10;  openSocket();&#10;  login();&#10;  openChannel(1);&#10;  declareAndBindQueue();&#10;  startConsume();&#10;}&#10;&#10;void MessageQueue::test() {&#10;  try {&#10;    openSocket();&#10;    login();&#10;    openChannel(1);&#10;    declareAndBindQueue();&#10;    startConsume();&#10;    while (true) {&#10;      std::cout &lt;&lt; consume().body &lt;&lt; std::endl;&#10;    }&#10;  } catch (std::string err) {&#10;    std::cerr &lt;&lt; err &lt;&lt; std::endl;&#10;  }&#10;}&#10;"/>
+                </properties>
+              </component>
+            </children>
+          </scrollpane>
+          <scrollpane id="50345">
+            <constraints>
+              <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+                <preferred-size width="450" height="600"/>
+              </grid>
+            </constraints>
+            <properties/>
+            <border type="none">
+              <size top="0" left="10" bottom="0" right="10"/>
+            </border>
+            <children>
+              <component id="6d2e4" class="javax.swing.JTextPane" binding="targetTextPane">
+                <constraints/>
+                <properties>
+                  <text value="#include &quot;MessageQueue.hpp&quot;&#10;&#10;MessageQueue::MessageQueue(std::string hostname, int port, std::string queue) {&#10;  conn = amqp_new_connection();&#10;  socket = amqp_tcp_socket_new(conn);&#10;  this-&gt;hostname = hostname;&#10;  this-&gt;port = port;&#10;  exchange = &quot;amq.direct&quot;;&#10;  route = this-&gt;queue = queue;&#10;}&#10;&#10;MessageQueue::~MessageQueue() {}&#10;&#10;void MessageQueue::openSocket() {&#10;  int status = amqp_socket_open(socket, hostname.c_str(), port);&#10;  throwOnError(status, &quot;MessageQueue::openSocket&quot;, &quot;Failed to connect to the message server.&quot;);&#10;}&#10;&#10;void MessageQueue::throwOnError(amqp_rpc_reply_t reply, std::string context) {&#10;  std::string err;&#10;  amqp_connection_close_t *m = (amqp_connection_close_t *) reply.reply.decoded;&#10;  std::snprintf(errbuf, sizeof(errbuf), &quot;server connection error %d, message: %.*s&quot;, m-&gt;reply_code, (int)m-&gt;reply_text.len, (char*)m-&gt;reply_text.bytes);&#10;  &#10;  switch (reply.reply_type) {&#10;    case AMQP_RESPONSE_NORMAL:&#10;      return;&#10;      &#10;    case AMQP_RESPONSE_NONE:&#10;      err = &quot;missing RPC reply type!&quot;;&#10;      break;&#10;&#10;    case AMQP_RESPONSE_LIBRARY_EXCEPTION:&#10;      err = amqp_error_string2(reply.library_error);&#10;      break;&#10;&#10;    case AMQP_RESPONSE_SERVER_EXCEPTION:&#10;      switch (reply.reply.id) {&#10;        case AMQP_CONNECTION_CLOSE_METHOD:&#10;          std::snprintf(errbuf, sizeof(errbuf), &quot;server connection error %d, message: %.*s&quot;, m-&gt;reply_code, (int)m-&gt;reply_text.len, (char*)m-&gt;reply_text.bytes);&#10;          err = errbuf;&#10;          break;&#10;    &#10;        case AMQP_CHANNEL_CLOSE_METHOD:&#10;          std::snprintf(errbuf, sizeof(errbuf), &quot;server channel error %d, message: %.*s&quot;, m-&gt;reply_code, (int)m-&gt;reply_text.len, (char*)m-&gt;reply_text.bytes);&#10;          err = errbuf;&#10;          break;&#10;          &#10;        default:&#10;          std::snprintf(errbuf, sizeof(errbuf), &quot;unknown server error, method id 0x%08X\n&quot;, reply.reply.id);&#10;          err = errbuf;&#10;          break;&#10;      }&#10;  }&#10;  throw context + &quot;: &quot; + err;&#10;}&#10;&#10;void MessageQueue::throwOnError(int status, std::string context, std::string errInfo) {&#10;  if (status) {&#10;    std::string err = &quot;an error happened.&quot;;&#10;    if (!errInfo.empty()) {&#10;      err = errInfo;&#10;    }&#10;    throw context + &quot;: &quot; + err;&#10;  }&#10;}&#10;&#10;void MessageQueue::login() {&#10;  amqp_rpc_reply_t reply;&#10;  reply = amqp_login(conn, &quot;/&quot;, AMQP_DEFAULT_MAX_CHANNELS, AMQP_DEFAULT_FRAME_SIZE, AMQP_DEFAULT_HEARTBEAT, AMQP_SASL_METHOD_PLAIN, &quot;guest&quot;, &quot;guest&quot;);&#10;  throwOnError(reply, &quot;MessageQueue::login&quot;);&#10;}&#10;&#10;void MessageQueue::openChannel(amqp_channel_t channel) {&#10;  this-&gt;channel = channel;&#10;  amqp_channel_open(conn, channel);&#10;  throwOnError(amqp_get_rpc_reply(conn), &quot;MessageQueue::openChannel&quot;);&#10;}&#10;&#10;void MessageQueue::declareAndBindQueue() {&#10;  // Declare&#10;  amqp_queue_declare(conn, channel, amqp_cstring_bytes(queue.c_str()), false, true, false, false, amqp_empty_table);&#10;  throwOnError(amqp_get_rpc_reply(conn), &quot;MessageQueue::declareAndBindQueue::Declare&quot;);&#10;&#10;  // Bind&#10;  amqp_queue_bind(conn, channel, amqp_cstring_bytes(route.c_str()), amqp_cstring_bytes(exchange.c_str()), amqp_cstring_bytes(route.c_str()), amqp_empty_table);&#10;  throwOnError(amqp_get_rpc_reply(conn), &quot;MessageQueue::declareAndBindQueue::Bind&quot;);&#10;}&#10;&#10;void MessageQueue::startConsume() {&#10;  amqp_basic_consume(conn, channel, amqp_cstring_bytes(queue.c_str()), amqp_empty_bytes, false, false, false, amqp_empty_table);&#10;  throwOnError(amqp_get_rpc_reply(conn), &quot;MessageQueue::startConsume&quot;);&#10;}&#10;&#10;Message MessageQueue::consume() {&#10;  amqp_rpc_reply_t reply;&#10;  amqp_envelope_t envelope;&#10;  Message msg;&#10;  throwOnError(reply, &quot;MessageQueue::consume&quot;);&#10;  msg.deliveryTag = envelope.delivery_tag;&#10;  msg.exchange = std::string((char*)envelope.exchange.bytes, envelope.exchange.len);&#10;  msg.routingKey = std::string((char*)envelope.routing_key.bytes, envelope.routing_key.len);&#10;  msg.body = std::string((char*)envelope.message.body.bytes, envelope.message.body.len);&#10;  amqp_basic_ack(conn, channel, envelope.delivery_tag, 0);&#10;  amqp_maybe_release_buffers_on_channel(conn, channel);&#10;  return msg;&#10;}&#10;&#10;void MessageQueue::close() {&#10;  amqp_rpc_reply_t reply;&#10;  reply = amqp_channel_close(conn, channel, AMQP_REPLY_SUCCESS);&#10;  throwOnError(reply, &quot;MessageQueue::close::channel&quot;);&#10;  reply = amqp_connection_close(conn, AMQP_REPLY_SUCCESS);&#10;  throwOnError(reply, &quot;MessageQueue::close::connection&quot;);&#10;  int status = amqp_destroy_connection(conn);&#10;  throwOnError(status, &quot;MessageQueue::close::destroyConnection&quot;, &quot;Failed to destroy connection.&quot;);&#10;}&#10;&#10;void MessageQueue::test() {&#10;  try {&#10;    openSocket();&#10;    login();&#10;    openChannel(1);&#10;    declareAndBindQueue();&#10;    startConsume();&#10;    while (true) {&#10;      std::cout &lt;&lt; consume().body &lt;&lt; std::endl;&#10;    }&#10;  } catch (std::string err) {&#10;    std::cerr &lt;&lt; err &lt;&lt; std::endl;&#10;  }&#10;}&#10;"/>
+                </properties>
+              </component>
+            </children>
+          </scrollpane>
+        </children>
+      </grid>
+      <grid id="b15b4" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints border-constraint="North"/>
+        <properties/>
+        <border type="none"/>
+        <children>
+          <hspacer id="230e8">
+            <constraints>
+              <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+          </hspacer>
+          <component id="fb7d0" class="javax.swing.JRadioButton" binding="basedOnCharactersRadioButton" default-binding="true">
+            <constraints>
+              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <selected value="false"/>
+              <text value="Based on characters"/>
+            </properties>
+          </component>
+          <component id="e8496" class="javax.swing.JRadioButton" binding="basedOnLinesRadioButton" default-binding="true">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <selected value="true"/>
+              <text value="Based on lines"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+    </children>
+  </grid>
+</form>
