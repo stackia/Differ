@@ -12,7 +12,7 @@ import java.util.List;
  * With IntelliJ IDEA.
  */
 public class HighlightRunnable implements Runnable {
-    private final LevenshteinDistanceCalculator levenshteinDistanceCalculator = new LevenshteinDistanceCalculator();
+    private final LevenshteinDistanceCalculator levenshteinDistanceCalculator;
     private final JTextPane sourceTextPane;
     private final JTextPane targetTextPane;
     private final SimpleAttributeSet copiedStyleAttributeSet = new SimpleAttributeSet();
@@ -23,9 +23,10 @@ public class HighlightRunnable implements Runnable {
     private List<String> targetLineList;
     private DiffMode diffMode;
 
-    public HighlightRunnable(JTextPane sourceTextPane, JTextPane targetTextPane) {
+    public HighlightRunnable(JTextPane sourceTextPane, JTextPane targetTextPane, LevenshteinDistanceCalculator levenshteinDistanceCalculator) {
         this.sourceTextPane = sourceTextPane;
         this.targetTextPane = targetTextPane;
+        this.levenshteinDistanceCalculator = levenshteinDistanceCalculator;
 
         StyleConstants.setForeground(copiedStyleAttributeSet, Color.BLACK);
         StyleConstants.setForeground(deletedStyleAttributeSet, Color.RED);
@@ -112,12 +113,12 @@ public class HighlightRunnable implements Runnable {
             targetPaneStyledDocument.setCharacterAttributes(highlightStart(p[1], false), highlightLength(p[1], false), copiedStyleAttributeSet, true);
         }
 
-        for (int p : levenshteinDistanceCalculator.getResults().delete) {
-            sourcePaneStyledDocument.setCharacterAttributes(highlightStart(p, true), highlightLength(p, true), deletedStyleAttributeSet, true);
+        for (int[] p : levenshteinDistanceCalculator.getResults().delete) {
+            sourcePaneStyledDocument.setCharacterAttributes(highlightStart(p[0], true), highlightLength(p[0], true), deletedStyleAttributeSet, true);
         }
 
-        for (int p : levenshteinDistanceCalculator.getResults().insert) {
-            targetPaneStyledDocument.setCharacterAttributes(highlightStart(p, false), highlightLength(p, false), insertedStyleAttributeSet, true);
+        for (int[] p : levenshteinDistanceCalculator.getResults().insert) {
+            targetPaneStyledDocument.setCharacterAttributes(highlightStart(p[1], false), highlightLength(p[1], false), insertedStyleAttributeSet, true);
         }
 
         if (enableReplace) {

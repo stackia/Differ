@@ -8,7 +8,7 @@ import java.util.List;
 public class LevenshteinDistanceCalculator {
     private List source;
     private List target;
-    private Results results;
+    private Results results = new Results();
     private boolean enableReplace = true;
 
     public void setSource(List source) {
@@ -92,20 +92,19 @@ public class LevenshteinDistanceCalculator {
         // Trace back
         int i, j;
         for (i = source.size(), j = target.size(); i > 0 && j > 0; ) {
+            int[] pos = {i - 1, j - 1};
             switch (backType[i][j]) {
                 case 0:
-                    int[] copy = {i - 1, j - 1};
-                    results.copy.add(copy);
+                    results.copy.add(pos);
                     break;
                 case 1:
-                    results.delete.add(i - 1);
+                    results.delete.add(pos);
                     break;
                 case 2:
-                    results.insert.add(j - 1);
+                    results.insert.add(pos);
                     break;
                 case 3:
-                    int[] rep = {i - 1, j - 1};
-                    results.replace.add(rep);
+                    results.replace.add(pos);
                     break;
                 default:
                     break;
@@ -116,11 +115,13 @@ public class LevenshteinDistanceCalculator {
             j = tj;
         }
         while (i > 0) {
-            results.delete.add(i - 1);
+            int[] pos = {i - 1, 0};
+            results.delete.add(pos);
             i--;
         }
         while (j > 0) {
-            results.insert.add(j - 1);
+            int[] pos = {0, j - 1};
+            results.insert.add(pos);
             j--;
         }
 
@@ -129,8 +130,8 @@ public class LevenshteinDistanceCalculator {
 
     public class Results {
         public final List<int[]> copy = new ArrayList<int[]>();
-        public final List<Integer> delete = new ArrayList<Integer>();
-        public final List<Integer> insert = new ArrayList<Integer>();
+        public final List<int[]> delete = new ArrayList<int[]>();
+        public final List<int[]> insert = new ArrayList<int[]>();
         public final List<int[]> replace = new ArrayList<int[]>();
         public int distance;
     }
