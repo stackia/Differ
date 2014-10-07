@@ -63,6 +63,7 @@ public class DiffDrawingPanel extends JPanel {
 
     @Override
     protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
         if (!enableDrawing) {
             return;
         }

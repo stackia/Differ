@@ -13,6 +13,7 @@ import java.util.List;
  */
 public class HighlightRunnable implements Runnable {
     private final LevenshteinDistanceCalculator levenshteinDistanceCalculator;
+    private final DiffDrawingPanel diffDrawingPanel;
     private final JTextPane sourceTextPane;
     private final JTextPane targetTextPane;
     private final SimpleAttributeSet copiedStyleAttributeSet = new SimpleAttributeSet();
@@ -23,9 +24,10 @@ public class HighlightRunnable implements Runnable {
     private List<String> targetLineList;
     private DiffMode diffMode;
 
-    public HighlightRunnable(JTextPane sourceTextPane, JTextPane targetTextPane, LevenshteinDistanceCalculator levenshteinDistanceCalculator) {
+    public HighlightRunnable(JTextPane sourceTextPane, JTextPane targetTextPane, DiffDrawingPanel diffDrawingPanel, LevenshteinDistanceCalculator levenshteinDistanceCalculator) {
         this.sourceTextPane = sourceTextPane;
         this.targetTextPane = targetTextPane;
+        this.diffDrawingPanel = diffDrawingPanel;
         this.levenshteinDistanceCalculator = levenshteinDistanceCalculator;
 
         StyleConstants.setForeground(copiedStyleAttributeSet, Color.BLACK);
@@ -127,6 +129,8 @@ public class HighlightRunnable implements Runnable {
                 targetPaneStyledDocument.setCharacterAttributes(highlightStart(p[1], false), highlightLength(p[1], false), replacedStyleAttributeSet, true);
             }
         }
+
+        diffDrawingPanel.repaint();
     }
 
     public enum DiffMode {

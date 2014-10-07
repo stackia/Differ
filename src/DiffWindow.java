@@ -36,7 +36,7 @@ class DiffWindow extends JFrame {
         ButtonGroup diffModeButtonGroup = new ButtonGroup();
         diffModeButtonGroup.add(basedOnCharactersRadioButton);
         diffModeButtonGroup.add(basedOnLinesRadioButton);
-        final HighlightRunnable highlightRunnable = new HighlightRunnable(sourceTextPane, targetTextPane, levenshteinDistanceCalculator);
+        final HighlightRunnable highlightRunnable = new HighlightRunnable(sourceTextPane, targetTextPane, (DiffDrawingPanel) diffDrawingPanel, levenshteinDistanceCalculator);
         basedOnLinesRadioButton.setSelected(true);
         highlightRunnable.setDiffMode(HighlightRunnable.DiffMode.LINES);
         highlightRunnable.run();
@@ -103,7 +103,8 @@ class DiffWindow extends JFrame {
         });
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ClassNotFoundException, UnsupportedLookAndFeelException, InstantiationException, IllegalAccessException {
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         DiffWindow frame = new DiffWindow();
         frame.setTitle("Differ");
         frame.setContentPane(frame.diffPanel);
